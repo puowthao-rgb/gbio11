@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Bio-11 Control Panel</title>
+    
+    <!-- Google Fonts: Share Tech Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- MathJax -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --panel-bg: rgba(18, 18, 18, 0.85);
+            --border-color: rgba(0, 243, 255, 0.3);
+            --neon-cyan: #00f3ff;
+            --neon-red: #ff3333;
+            --neon-orange: #ff7b00;
+            --neon-green: #00ff66;
+            --text-main: #a9b4c2;
+            --text-light: #e0e6ed;
+            --gauge-bg: #2a2a2a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, var(--bg-dark) 100%);
+            color: var(--text-main);
+            font-family: 'Share Tech Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 51, 51, 0.3);
+            z-index: 9998;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        body.flash-screen::before {
+            animation: flash-screen-anim 0.6s ease-in-out 2;
+        }
+
+        @keyframes flash-screen-anim {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; background: rgba(255, 0, 0, 0.6); }
+        }
+
+        #explosion-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            background: #fff;
+            padding: 20px;
+        }
+
+        #explosion-overlay.active {
+            pointer-events: all;
+            animation: nuke-flash 4s forwards;
+        }
+
+        @keyframes nuke-flash {
+            0% { background: #ffffff; opacity: 1; }
+            10% { background: #ffffff; opacity: 1; }
+            30% { background: #ffaa00; opacity: 1; }
+            100% { background: radial-gradient(circle, #660000 0%, #000000 100%); opacity: 1; }
+        }
+
+        .explosion-text {
+            color: #fff;
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: bold;
+            text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000;
+            opacity: 0;
+            text-transform: uppercase;
+        }
+
+        #explosion-overlay.active .explosion-text {
+            animation: fade-in-text 1s 2.5s forwards;
+        }
+
+        @keyframes fade-in-text {
+            to { opacity: 1; }
+        }
+
+        .dashboard {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 0 20px rgba(0, 243, 255, 0.05);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 10;
+        }
+
+        .header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 243, 255, 0.03);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-title { color: var(--text-light); font-size: 1.2rem; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; font-weight: bold; }
+        
+        .timer-box {
+            background: rgba(255, 51, 51, 0.1);
+            border: 1px solid var(--neon-red);
+            padding: 0.3rem 1rem;
+            border-radius: 4px;
+            color: var(--neon-red);
+            font-size: 1.6rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 51, 51, 0.8);
+            animation: pulse-red 0.5s infinite alternate;
+        }
+
+        @keyframes pulse-red {
+            from { box-shadow: 0 0 5px rgba(255, 51, 51, 0.2); transform: scale(1); }
+            to { box-shadow: 0 0 20px rgba(255, 51, 51, 0.8); transform: scale(1.05); }
+        }
+
+        .shields { color: var(--neon-cyan); font-size: 1.4rem; display: flex; gap: 8px; }
+        .shields i.broken { color: var(--neon-red); opacity: 0.3; }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            padding: 2rem;
+        }
+
+        @media (min-width: 850px) {
+            .main-content { grid-template-columns: 1.4fr 1fr; }
+        }
+
+        .formula-box {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--neon-cyan);
+            padding: 1.2rem;
+            font-size: 1.4rem;
+            margin-bottom: 1.5rem;
+            color: var(--neon-cyan);
+            display: flex;
+            justify-content: center;
+        }
+
+        .task-list { margin-bottom: 2rem; font-size: 1.1rem; line-height: 1.6; }
+        .task-item { margin-bottom: 1rem; display: flex; gap: 12px; align-items: flex-start; }
+        .task-item i { margin-top: 6px; }
+        .task-item.warning i { color: var(--neon-red); }
+        .task-item.optimize i { color: var(--neon-green); }
+        
+        .highlight-red { color: var(--neon-red); font-weight: bold; }
+
+        .control-panel {
+            background: rgba(0, 243, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px dashed var(--border-color);
+        }
+
+        .status-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 1.2rem; 
+            padding-bottom: 1rem; 
+            border-bottom: 1px dashed rgba(0, 243, 255, 0.2); 
+        }
+
+        .control-label {
+            color: var(--neon-cyan);
+            font-size: 1rem;
+            text-transform: uppercase;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+        input[type="number"] {
+            flex: 1;
+            min-width: 120px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--neon-cyan);
+            color: var(--text-light);
+            padding: 0.8rem 1rem;
+            font-size: 2rem;
+            font-family: 'Share Tech Mono', monospace;
+            outline: none;
+            border-radius: 4px;
+            transition: box-shadow 0.3s;
+            text-align: center;
+        }
+        
+        input[type="number"]:focus:not(:disabled) { box-shadow: 0 0 15px rgba(0, 243, 255, 0.5); }
+        input[type="number"]:disabled { opacity: 0.5; cursor: not-allowed; border-color: var(--neon-red); }
+
+        button {
+            background: linear-gradient(135deg, rgba(0,243,255,0.1) 0%, rgba(0,102,255,0.3) 100%);
+            color: var(--text-light);
+            border: 1px solid var(--neon-cyan);
+            padding: 0.8rem 1.5rem;
+            font-size: 1.2rem;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        button:hover:not(:disabled) {
+            background: rgba(0, 243, 255, 0.2);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+        }
+
+        button:disabled { opacity: 0.5; cursor: not-allowed; border-color: var(--neon-red); color: #fff;}
+
+        #sys-msg { margin-top: 1rem; min-height: 24px; font-size: 1rem; font-weight: bold; text-transform: uppercase;}
+
+        .right-panel { display: flex; flex-direction: column; }
+        
+        .monitor-card {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .monitor-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-main);
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 100%;
+            max-width: 280px;
+            aspect-ratio: 2/1;
+        }
+
+        svg.gauge { width: 100%; height: 100%; overflow: visible; }
+        
+        .gauge-bg { fill: none; stroke: var(--gauge-bg); stroke-width: 18; stroke-linecap: round; }
+        
+        .gauge-fill {
+            fill: none;
+            stroke: var(--neon-cyan);
+            stroke-width: 18;
+            stroke-linecap: round;
+            stroke-dasharray: 251.2;
+            stroke-dashoffset: 251.2; /* Max value initially (empty) */
+            transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease;
+            filter: drop-shadow(0 0 8px var(--neon-cyan));
+        }
+
+        .gauge-tick { stroke: var(--neon-red); stroke-width: 4; stroke-linecap: round; }
+        .tick-label { fill: var(--neon-red); font-size: 14px; font-family: 'Share Tech Mono'; font-weight: bold; }
+
+        .gauge-text {
+            position: absolute;
+            bottom: -15px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .gauge-value {
+            font-size: 4rem;
+            font-weight: bold;
+            color: var(--text-light);
+            text-shadow: 0 0 15px rgba(255,255,255,0.3);
+            line-height: 1;
+            transition: color 0.3s;
+        }
+        
+        .gauge-unit { font-size: 1.1rem; color: var(--text-main); margin-top: 5px; text-transform: uppercase; letter-spacing: 1px;}
+
+        .shake { animation: shake 0.4s both; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+        
+        .severe-shake { animation: severe-shake 0.8s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes severe-shake {
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            10%, 90% { transform: translate3d(-15px, -15px, 0); }
+            20%, 80% { transform: translate3d(20px, 15px, 0); }
+            30%, 50%, 70% { transform: translate3d(-30px, 20px, 0); }
+            40%, 60% { transform: translate3d(30px, -20px, 0); }
+        }
+        
+        .error-state { border-color: var(--neon-red) !important; box-shadow: 0 0 40px rgba(255, 51, 51, 0.3) !important; }
+        .success-state { border-color: var(--neon-green) !important; box-shadow: 0 0 40px rgba(0, 255, 102, 0.3) !important; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    
+        /* Responsive bổ sung cho điện thoại: chỉ điều chỉnh bố cục, không thay đổi nội dung */
+        @media (max-width: 600px) {
+            body {
+                min-height: 100vh;
+                min-height: 100dvh;
+                display: block;
+                padding: 10px;
+            }
+
+            .dashboard {
+                width: 100%;
+                max-width: 100%;
+                margin: 0 auto;
+                border-radius: 10px;
+            }
+
+            .header {
+                padding: 14px;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .header-title {
+                min-width: 0;
+                flex: 1 1 100%;
+                font-size: clamp(0.95rem, 4vw, 1.15rem);
+                line-height: 1.4;
+                overflow-wrap: anywhere;
+            }
+
+            .timer-box {
+                font-size: clamp(1.15rem, 5vw, 1.45rem);
+                padding: 6px 10px;
+            }
+
+            .shields {
+                font-size: 1.15rem;
+                gap: 6px;
+                align-items: center;
+            }
+
+            .main-content {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 18px;
+                padding: 14px;
+            }
+
+            .main-content > *,
+            .right-panel,
+            .control-panel,
+            .monitor-card {
+                min-width: 0;
+            }
+
+            .formula-box {
+                padding: 12px 8px;
+                margin-bottom: 18px;
+                font-size: clamp(1rem, 4.5vw, 1.3rem);
+                overflow-x: auto;
+                max-width: 100%;
+            }
+
+            .task-list {
+                font-size: 0.98rem;
+                line-height: 1.55;
+                margin-bottom: 20px;
+                overflow-wrap: anywhere;
+            }
+
+            .task-item {
+                gap: 9px;
+                margin-bottom: 12px;
+            }
+
+            .control-panel {
+                padding: 14px;
+            }
+
+            .status-row {
+                gap: 10px;
+                flex-wrap: wrap;
+                margin-bottom: 14px;
+                padding-bottom: 12px;
+            }
+
+            .control-label {
+                font-size: 0.92rem;
+                line-height: 1.4;
+                overflow-wrap: anywhere;
+            }
+
+            .input-row {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            input[type="number"] {
+                width: 100%;
+                min-width: 0;
+                font-size: 1.6rem;
+                padding: 12px 10px;
+            }
+
+            button {
+                width: 100%;
+                justify-content: center;
+                white-space: normal;
+                text-align: center;
+                font-size: 1rem;
+                padding: 12px 10px;
+            }
+
+            #sys-msg {
+                font-size: 0.9rem;
+                line-height: 1.5;
+                overflow-wrap: anywhere;
+            }
+
+            .monitor-card {
+                padding: 14px;
+            }
+
+            .monitor-header {
+                gap: 8px;
+                font-size: 0.9rem;
+                letter-spacing: 0.4px;
+                padding-bottom: 12px;
+                margin-bottom: 22px;
+                overflow-wrap: anywhere;
+            }
+
+            .gauge-container {
+                width: min(100%, 280px);
+                max-width: 100%;
+            }
+
+            .gauge-value {
+                font-size: clamp(2.5rem, 13vw, 3.5rem);
+            }
+
+            .gauge-unit {
+                font-size: 0.95rem;
+            }
+
+            .explosion-text {
+                font-size: clamp(1.7rem, 8vw, 3rem);
+                overflow-wrap: anywhere;
+            }
+
+            #explosion-overlay {
+                padding: 16px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            body {
+                padding: 6px;
+            }
+
+            .header {
+                padding: 11px;
+            }
+
+            .main-content {
+                padding: 10px;
+                gap: 14px;
+            }
+
+            .control-panel,
+            .monitor-card {
+                padding: 11px;
+            }
+
+            .formula-box {
+                font-size: 0.95rem;
+            }
+
+            .task-list {
+                font-size: 0.92rem;
+            }
+
+            .monitor-header {
+                font-size: 0.78rem;
+            }
+        }
+
+        @media (max-height: 500px) and (orientation: landscape) {
+            body {
+                align-items: flex-start;
+                padding-top: 8px;
+                padding-bottom: 8px;
+            }
+
+            .main-content {
+                gap: 14px;
+                padding: 14px;
+            }
+        }
+
+
+        /* BIO LAB visual refresh: vivid glass panels + animated bacteria */
+        body {
+            background-color: #07131a;
+            background-image: radial-gradient(ellipse at 15% 10%, rgba(0,243,255,.16), transparent 38%), radial-gradient(ellipse at 85% 85%, rgba(130,70,255,.14), transparent 34%), linear-gradient(135deg,#07131a,#101124 60%,#07131a);
+        }
+        body::after {
+            content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+            background-image: linear-gradient(rgba(0,243,255,.035) 1px, transparent 1px), linear-gradient(90deg,rgba(0,243,255,.035) 1px, transparent 1px);
+            background-size: 32px 32px; mask-image: linear-gradient(to bottom,black,transparent 95%);
+        }
+        .dashboard { max-width: 1120px; border-radius: 20px; border-color: rgba(0,243,255,.5); box-shadow: 0 0 30px rgba(0,243,255,.12), 0 24px 70px rgba(0,0,0,.65), inset 0 0 28px rgba(0,243,255,.045); }
+        .header { background: linear-gradient(110deg,rgba(0,243,255,.11),rgba(125,80,255,.10),transparent); padding: 1.25rem 1.6rem; }
+        .header-title { font-size: clamp(1rem,2vw,1.35rem); text-shadow: 0 0 14px rgba(0,243,255,.35); }
+        .header-title i { color: var(--neon-cyan); filter: drop-shadow(0 0 7px var(--neon-cyan)); }
+        .main-content { gap: 1.4rem; }
+        .left-panel, .right-panel { min-width: 0; }
+        .formula-box { border-radius: 12px; background: linear-gradient(135deg,rgba(0,243,255,.09),rgba(0,0,0,.55)); box-shadow: inset 0 0 24px rgba(0,243,255,.035); }
+        .task-list { padding: 1rem; border-radius: 12px; background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.07); }
+        .task-item { padding: .35rem 0; }
+        .task-item i { filter: drop-shadow(0 0 6px currentColor); }
+        .control-panel { border-radius: 14px; background: linear-gradient(135deg,rgba(0,243,255,.09),rgba(125,80,255,.055)); box-shadow: 0 0 24px rgba(0,243,255,.05); }
+        button { border-radius: 9px; background: linear-gradient(115deg,rgba(0,243,255,.2),rgba(104,72,255,.25)); }
+        input[type="number"] { border-radius: 9px; }
+        .monitor-card { position: relative; overflow: hidden; border-radius: 16px; background: radial-gradient(ellipse at 50% 30%,rgba(0,243,255,.10),transparent 60%),rgba(0,0,0,.36); box-shadow: inset 0 0 35px rgba(0,243,255,.045); }
+        .monitor-header { position: relative; z-index: 2; }
+        .bacteria-stage { width: 100%; min-height: 190px; position: relative; display: flex; align-items: center; justify-content: center; margin: -1rem 0 1rem; overflow: hidden; border-radius: 14px; background: radial-gradient(ellipse,rgba(0,243,255,.10),transparent 68%); }
+        .bacteria-stage::before, .bacteria-stage::after { content:''; position:absolute; border:1px solid rgba(0,243,255,.16); border-radius:50%; width:150px;height:150px; animation: orbit-pulse 4s ease-in-out infinite; }
+        .bacteria-stage::after { width:190px;height:190px; animation-delay:-2s; border-style:dashed; }
+        .bacteria-art { width: 155px; height: 155px; position: relative; z-index: 1; filter: drop-shadow(0 0 15px rgba(0,243,255,.38)); animation: bacteria-float 4s ease-in-out infinite; }
+        .bacteria-art .cell { transform-origin:center; animation: cell-spin 18s linear infinite; }
+        .microbe { position:absolute; width:32px;height:15px;border-radius:50%;background:linear-gradient(135deg,#b6ff7a,#18dba7);border:2px solid #d7ffad;box-shadow:0 0 12px rgba(0,255,170,.5);opacity:.85; }
+        .microbe::before,.microbe::after { content:'';position:absolute;width:7px;height:7px;border-radius:50%;background:#eaffb0;top:2px;left:7px;box-shadow:10px 3px 0 rgba(4,88,90,.7); }
+        .microbe::after { width:15px;height:1px;top:-5px;left:4px;background:#68e9c6;transform:rotate(-25deg);box-shadow:16px 24px 0 #68e9c6; }
+        .m1 { left:10%;top:25%;transform:rotate(25deg);animation: drift-a 7s ease-in-out infinite; }
+        .m2 { right:12%;top:20%;transform:rotate(-35deg) scale(.8);animation: drift-b 6s ease-in-out infinite; }
+        .m3 { left:17%;bottom:17%;transform:rotate(-18deg) scale(.65);animation: drift-b 8s ease-in-out infinite; }
+        .m4 { right:13%;bottom:18%;transform:rotate(35deg) scale(1.05);animation: drift-a 9s ease-in-out infinite; }
+        .microbe-label { position:absolute; bottom:8px; left:0; right:0; text-align:center; color:rgba(0,243,255,.72); font-size:.78rem; letter-spacing:2px; }
+        @keyframes bacteria-float { 0%,100%{transform:translateY(0) rotate(-3deg)} 50%{transform:translateY(-9px) rotate(3deg)} }
+        @keyframes cell-spin { to{transform:rotate(360deg)} }
+        @keyframes orbit-pulse { 0%,100%{transform:scale(.94);opacity:.45} 50%{transform:scale(1.05);opacity:1} }
+        @keyframes drift-a { 0%,100%{translate:0 0} 50%{translate:7px -13px} }
+        @keyframes drift-b { 0%,100%{translate:0 0} 50%{translate:-9px 10px} }
+        @media (max-width:600px) { .bacteria-stage { min-height:165px; } .bacteria-art { width:135px;height:135px; } .dashboard { border-radius:14px; } }
+
+
+        /* Responsive + lively interaction polish */
+        :root { --ui-scale: 1; }
+        html { min-height: 100%; -webkit-text-size-adjust: 100%; }
+        body { min-height: 100vh; min-height: 100svh; padding: clamp(8px, 2vw, 24px); }
+        .dashboard { width: min(100%, 1180px); }
+        .header-title { font-size: clamp(1rem, 1.6vw, 1.3rem); line-height: 1.35; }
+        .main-content { gap: clamp(14px, 2.4vw, 32px); padding: clamp(12px, 2.4vw, 30px); }
+        .task-list { font-size: clamp(.92rem, 1.25vw, 1.1rem); }
+        .formula-box { font-size: clamp(1rem, 2vw, 1.4rem); overflow-x: auto; max-width: 100%; }
+        .control-panel, .monitor-card { min-width: 0; }
+        .input-row { align-items: stretch; }
+        input[type="number"] { width: 100%; min-width: 0; font-size: clamp(1.25rem, 3vw, 2rem); }
+        #btn-submit { justify-content: center; flex: 0 1 auto; font-size: clamp(.9rem, 1.4vw, 1.2rem); }
+        .gauge-value { font-size: clamp(2rem, 5vw, 4rem); overflow-wrap: anywhere; }
+        .bacteria-art { width: clamp(110px, 16vw, 180px); height: auto; filter: drop-shadow(0 0 12px rgba(0,243,255,.3)); }
+        .bacteria-stage { min-height: clamp(145px, 21vw, 220px); }
+        .cell { transform-box: fill-box; transform-origin: center; animation: cell-float 4s ease-in-out infinite, cell-glow 2.8s ease-in-out infinite alternate; }
+        .microbe { animation-duration: 4s; }
+        button { min-height: 46px; touch-action: manipulation; }
+        button:active:not(:disabled) { transform: translateY(1px) scale(.98); }
+        .success-state { animation: success-pop .7s ease both; }
+        .error-state { animation: error-pulse .45s ease-in-out 2; }
+        .task-item { transition: transform .25s ease, filter .25s ease; }
+        .task-item:hover { transform: translateX(4px); filter: brightness(1.2); }
+        #sys-msg { overflow-wrap: anywhere; line-height: 1.5; }
+        @keyframes cell-float { 0%,100% { transform: translateY(0) rotate(-2deg) scale(1); } 50% { transform: translateY(-7px) rotate(2deg) scale(1.025); } }
+        @keyframes cell-glow { from { filter: drop-shadow(0 0 5px rgba(0,243,255,.25)); } to { filter: drop-shadow(0 0 16px rgba(0,255,180,.65)); } }
+        @keyframes success-pop { 0% { transform: scale(1); } 45% { transform: scale(1.012); } 100% { transform: scale(1); } }
+        @keyframes error-pulse { 50% { box-shadow: 0 0 28px rgba(255,51,51,.5); } }
+        @media (min-width: 850px) and (min-height: 650px) {
+          .dashboard { max-height: calc(100svh - 32px); }
+          .main-content { overflow: auto; }
+        }
+        @media (max-width: 849px) {
+          body { align-items: flex-start; }
+          .main-content { grid-template-columns: minmax(0, 1fr); }
+          /* Trên màn hình nhỏ, đưa phần giám sát ranh giới xuống cuối; giữ nguyên nội dung và hiệu ứng */
+          .left-panel { order: 0; }
+          .right-panel { order: 1; }
+          .monitor-card { padding: clamp(12px, 3vw, 22px); }
+          .monitor-header { margin-bottom: 1rem; }
+          .gauge-container { max-width: min(78vw, 280px); }
+        }
+        @media (max-width: 520px) {
+          body { padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left)); }
+          .header { padding: 12px; }
+          .header-title { letter-spacing: .3px; }
+          .status-row { gap: 10px; }
+          .shields { font-size: 1.1rem; gap: 5px; }
+          .input-row { flex-direction: column; gap: 10px; }
+          #btn-submit { width: 100%; }
+          .control-label { font-size: .88rem; line-height: 1.45; }
+          .task-list { line-height: 1.5; }
+          .microbe-label { font-size: .62rem; }
+        }
+        @media (max-height: 560px) and (orientation: landscape) {
+          body { align-items: flex-start; }
+          .main-content { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 12px; padding: 12px; }
+          .right-panel { order: initial; }
+          .bacteria-stage { min-height: 100px; margin: 0 0 .5rem; }
+          .bacteria-art { width: 95px; }
+          .monitor-header { margin-bottom: .5rem; padding-bottom: .5rem; }
+          .gauge-container { max-width: 200px; }
+          .gauge-value { font-size: clamp(1.5rem, 4vw, 2.5rem); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="explosion-overlay">
+        <h1 class="explosion-text">HỆ THỐNG ĐÃ SẬP.<br>MẺ NUÔI CẤY ĐÃ HỎNG!</h1>
+    </div>
+
+    <div class="dashboard" id="dashboard">
+        <header class="header">
+            <div class="header-title"><i class="fas fa-microchip"></i> CHIẾN DỊCH: CỨU MẺ NUÔI CẤY BIO-11</div>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="task-list" id="task-list">
+                    <!-- Tasks rendered from JS -->
+                </div>
+
+                <div class="formula-box" id="math-formula">
+                    <!-- MathJax renders formula here -->
+                </div>
+
+                <div class="control-panel">
+                    <div class="status-row">
+                        <div class="timer-box" id="timer-display">00:30</div>
+                        <div class="shields" id="shields"></div>
+                    </div>
+                    <div class="control-label"><i class="fas fa-terminal"></i> NHẬP THỜI GIAN Ủ AN TOÀN (T — GIỜ)</div>
+                    <div class="input-row">
+                        <input type="number" id="input-t" placeholder="Nhập thời gian (giờ)" autocomplete="off" min="0" step="0.01">
+                        <button id="btn-submit"><i class="fas fa-bolt"></i> THỰC THI LỆNH</button>
+                    </div>
+                    <div id="sys-msg">_SẴN SÀNG NHẬN DỮ LIỆU...</div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="monitor-card">
+                    <div class="monitor-header">
+                        <span>GIÁM SÁT RANH GIỚI</span>
+                        <i class="fas fa-radar" style="animation: spin 3s linear infinite; color: var(--neon-cyan);"></i>
+                    </div>
+                    
+                    <div class="bacteria-stage" aria-label="Minh họa vi khuẩn đang phát triển">
+                        <span class="microbe m1"></span><span class="microbe m2"></span><span class="microbe m3"></span><span class="microbe m4"></span>
+                        <svg class="bacteria-art" viewBox="0 0 180 180" role="img" aria-label="Minh họa tế bào vi khuẩn màu xanh phát sáng">
+                            <defs>
+                                <linearGradient id="cellGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c7ff78"/><stop offset=".48" stop-color="#2ce6ba"/><stop offset="1" stop-color="#00a9d5"/></linearGradient>
+                                <radialGradient id="cellCore"><stop offset="0" stop-color="#123b55"/><stop offset="1" stop-color="#071b31"/></radialGradient>
+                            </defs>
+                            <g class="cell">
+                                <g stroke="#62f9d0" stroke-width="2" fill="none" stroke-linecap="round">
+                                    <path d="M90 28 Q70 8 54 20 T31 13"/><path d="M130 48 Q158 36 163 20"/><path d="M137 125 Q160 137 156 158"/><path d="M62 139 Q43 159 24 151"/><path d="M39 72 Q14 69 12 50"/>
+                                    <path d="M84 25 l-5 -8 M54 20 l-7 -8 M160 24 l8 -3 M156 155 l9 5 M25 150 l-8 6 M13 51 l-7 -4"/>
+                                </g>
+                                <ellipse cx="90" cy="88" rx="52" ry="62" fill="url(#cellGrad)" stroke="#d7ff9d" stroke-width="4"/>
+                                <ellipse cx="90" cy="88" rx="43" ry="53" fill="url(#cellCore)" stroke="#7bffce" stroke-width="2"/>
+                                <path d="M72 61 C54 72 73 85 87 76 S113 65 111 86 S77 100 79 117 S104 122 111 108" fill="none" stroke="#b7ff80" stroke-width="5" stroke-linecap="round"/>
+                                <g fill="#eaffb0"><circle cx="68" cy="91" r="3"/><circle cx="108" cy="58" r="3"/><circle cx="112" cy="101" r="2.5"/><circle cx="75" cy="121" r="2.5"/><circle cx="96" cy="76" r="2"/></g>
+                            </g>
+                        </svg>
+                        <span class="microbe-label">LIVE CULTURE • BIO-11</span>
+                    </div>
+
+                    <div class="gauge-container">
+                        <svg class="gauge" viewBox="0 10 200 100">
+                            <!-- Background Arc -->
+                            <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" />
+                            <!-- Value Arc -->
+                            <path class="gauge-fill" id="gauge-arc" d="M 20 100 A 80 80 0 0 1 180 100" />
+                            <!-- 50 triệu vi khuẩn: ngưỡng nguy hiểm -->
+                            <line class="gauge-tick" x1="162" y1="50" x2="182" y2="35" />
+                            <text class="tick-label" x="172" y="28">50M</text>
+                        </svg>
+
+                        <div class="gauge-text">
+                            <div class="gauge-value" id="gauge-val">--</div>
+                            <div class="gauge-unit">Vi khuẩn (con)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // TẤT CẢ CẤU HÌNH Ở ĐÂY
+        const CONFIG = {
+            timerSeconds: 30,           
+            maxLives: 3,                
+            correctAnswer: 70.98,         
+            formulaRaw: '\\[ N(t) = 10000e^{0.12t} \\]', 
+            gaugeMaxLimit: 62500000, // Thang đo vi khuẩn, giới hạn hiển thị 62,5 triệu con
+            
+            // Đã loại bỏ phần Ràng buộc khỏi giao diện như yêu cầu
+            tasks: [
+                {
+                    icon: 'fas fa-triangle-exclamation',
+                    type: 'warning',
+                    text: '<strong>Ngưỡng nguy hiểm:</strong> Nếu số lượng vi khuẩn vượt <span class="highlight-red">50.000.000 (50 triệu) con</span>, bồn ủ làm cạn kiệt dinh dưỡng và khiến hệ thống lọc sinh học quá tải, dẫn đến hỏng hoàn toàn.'
+                },
+                {
+                    icon: 'fas fa-arrow-trend-up',
+                    type: 'optimize',
+                    text: '<strong>Nhiệm vụ:</strong> Mẻ men vi sinh công nghiệp khởi điểm có 10.000 con và tăng trưởng 12% mỗi giờ. Hãy tìm thời gian ủ liên tục tối đa (làm tròn đến chữ số thập phân thứ hai) để thu hoạch an toàn.'
+                }
+            ],
+            audio: {
+                bg: 'https://cdn.pixabay.com/download/audio/2022/10/25/audio_2ba765790c.mp3?filename=dark-sci-fi-drone-123797.mp3', 
+                error: 'https://cdn.pixabay.com/download/audio/2021/08/09/audio_65cb6f9df6.mp3?filename=siren-alert-96052.mp3',                
+                explode: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_c6ccf3232f.mp3?filename=explosion-6055.mp3',
+                success: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_bb630cc098.mp3?filename=success-1-6297.mp3' 
+            }
+        };
+
+        const DOM = {
+            dash: document.getElementById('dashboard'),
+            formula: document.getElementById('math-formula'),
+            taskList: document.getElementById('task-list'),
+            timer: document.getElementById('timer-display'),
+            shields: document.getElementById('shields'),
+            input: document.getElementById('input-t'),
+            btn: document.getElementById('btn-submit'),
+            msg: document.getElementById('sys-msg'),
+            gaugeArc: document.getElementById('gauge-arc'),
+            gaugeVal: document.getElementById('gauge-val'),
+            explosionOverlay: document.getElementById('explosion-overlay')
+        };
+
+        let timeLeft = CONFIG.timerSeconds;
+        let currentLives = CONFIG.maxLives;
+        let isGameOver = false;
+        let timerInterval = null;
+        let isAudioStarted = false;
+
+        // Khởi tạo Audio
+        const sfx = {
+            bg: new Audio(CONFIG.audio.bg),
+            err: new Audio(CONFIG.audio.error),
+            exp: new Audio(CONFIG.audio.explode),
+            win: new Audio(CONFIG.audio.success)
+        };
+        sfx.bg.loop = true; sfx.bg.volume = 0.2;
+        sfx.err.volume = 0.8;
+        sfx.exp.volume = 1.0;
+
+        // Âm báo ngắn tạo trực tiếp bằng Web Audio: hoạt động cả khi file âm thanh ngoài không tải được.
+        let feedbackAudioContext = null;
+        function playFeedbackTone(kind) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                if (!feedbackAudioContext) feedbackAudioContext = new AudioCtx();
+                if (feedbackAudioContext.state === 'suspended') feedbackAudioContext.resume();
+                const ctx = feedbackAudioContext;
+                const now = ctx.currentTime;
+                const notes = kind === 'correct' ? [660, 880, 1175] : [220, 165];
+                notes.forEach((frequency, index) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = kind === 'correct' ? 'sine' : 'sawtooth';
+                    osc.frequency.setValueAtTime(frequency, now + index * (kind === 'correct' ? 0.11 : 0.16));
+                    gain.gain.setValueAtTime(0.0001, now + index * (kind === 'correct' ? 0.11 : 0.16));
+                    gain.gain.exponentialRampToValueAtTime(kind === 'correct' ? 0.16 : 0.12, now + index * (kind === 'correct' ? 0.11 : 0.16) + 0.025);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + index * (kind === 'correct' ? 0.11 : 0.16) + (kind === 'correct' ? 0.19 : 0.22));
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.start(now + index * (kind === 'correct' ? 0.11 : 0.16));
+                    osc.stop(now + index * (kind === 'correct' ? 0.11 : 0.16) + (kind === 'correct' ? 0.21 : 0.24));
+                });
+            } catch (e) { /* Âm báo là tính năng bổ trợ, không làm gián đoạn trò chơi. */ }
+        }
+
+        function initApp() {
+            // Render MathJax
+            DOM.formula.innerHTML = CONFIG.formulaRaw;
+            if (window.MathJax) MathJax.typesetPromise();
+            
+            // Render Tasks
+            CONFIG.tasks.forEach(task => {
+                DOM.taskList.innerHTML += `
+                    <div class="task-item ${task.type}">
+                        <i class="${task.icon}"></i>
+                        <div>${task.text}</div>
+                    </div>
+                `;
+            });
+
+            updateShields();
+            // Khởi tạo giá trị ban đầu t=0
+            updateGauge(0);
+            startTimer();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (isGameOver) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+                
+                timeLeft--;
+                const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                const s = (timeLeft % 60).toString().padStart(2, '0');
+                DOM.timer.innerText = `${m}:${s}`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    triggerExplosion();
+                }
+            }, 1000);
+        }
+
+        function updateShields() {
+            DOM.shields.innerHTML = '';
+            for (let i = 0; i < CONFIG.maxLives; i++) {
+                DOM.shields.innerHTML += `<i class="fas fa-shield-halved ${i >= currentLives ? 'broken' : ''}"></i>`;
+            }
+        }
+
+        function calculateValue(t) {
+            if (t === '' || isNaN(t) || t < 0) return { val: 10000, isDanger: false };
+            const val = 10000 * Math.exp(0.12 * t);
+            return { val: val, isDanger: val > 50000000 };
+        }
+
+        function updateGauge(tValue) {
+            const result = calculateValue(tValue);
+            
+            let valStr = result.val.toFixed(2);
+            if (result.val >= 1000) valStr = Math.round(result.val).toLocaleString("vi-VN");
+            
+            // Cập nhật số hiển thị
+            DOM.gaugeVal.innerText = valStr;
+            
+            // Đổi màu nếu quá tải
+            if (result.isDanger) {
+                DOM.gaugeArc.style.stroke = "var(--neon-red)";
+                DOM.gaugeVal.style.color = "var(--neon-red)";
+                DOM.gaugeArc.style.filter = "drop-shadow(0 0 12px var(--neon-red))";
+            } else {
+                DOM.gaugeArc.style.stroke = "var(--neon-cyan)";
+                DOM.gaugeVal.style.color = "var(--text-light)";
+                DOM.gaugeArc.style.filter = "drop-shadow(0 0 8px var(--neon-cyan))";
+            }
+
+            // Tính toán độ dài cung SVG
+            const MAX_DASH = 251.2;
+            let displayVal = result.val;
+            
+            if (displayVal > CONFIG.gaugeMaxLimit) displayVal = CONFIG.gaugeMaxLimit;
+            if (displayVal < 0) displayVal = 0;
+
+            const percentage = displayVal / CONFIG.gaugeMaxLimit;
+            const newOffset = MAX_DASH - (percentage * MAX_DASH);
+            
+            DOM.gaugeArc.style.strokeDashoffset = newOffset;
+        }
+
+        function showMsg(txt, color) {
+            DOM.msg.innerHTML = txt;
+            DOM.msg.style.color = color;
+        }
+
+        function shakeUI() {
+            DOM.dash.classList.remove('shake');
+            void DOM.dash.offsetWidth;
+            DOM.dash.classList.add('shake');
+        }
+
+        function flashRedScreen() {
+            document.body.classList.remove('flash-screen');
+            void document.body.offsetWidth;
+            document.body.classList.add('flash-screen');
+            setTimeout(() => { document.body.classList.remove('flash-screen'); }, 1300);
+        }
+
+        function triggerExplosion() {
+            if (isGameOver) return;
+            isGameOver = true;
+            
+            sfx.bg.pause(); 
+            sfx.err.pause();
+            sfx.exp.currentTime = 0;
+            sfx.exp.play().catch(()=>{});
+            
+            DOM.input.disabled = true;
+            DOM.btn.disabled = true;
+            DOM.input.value = 'ERROR';
+            
+            DOM.timer.style.animation = "none";
+            DOM.dash.classList.add('error-state');
+            
+            // Giả lập đồng hồ nhảy vọt lên max khi nổ
+            updateGauge(999);
+            showMsg("> MẺ NUÔI CẤY ĐÃ VƯỢT NGƯỠNG AN TOÀN!", "var(--neon-red)");
+
+            DOM.dash.classList.add('severe-shake');
+            DOM.explosionOverlay.classList.add('active');
+        }
+
+        function triggerWin() {
+            isGameOver = true;
+            playFeedbackTone('correct');
+            sfx.bg.pause(); sfx.win.currentTime = 0; sfx.win.play().catch(()=>{});
+            DOM.dash.classList.add('success-state');
+            
+            DOM.input.disabled = true;
+            DOM.btn.disabled = true;
+            
+            DOM.timer.style.animation = "none";
+            DOM.timer.style.color = "var(--neon-green)";
+            DOM.timer.style.borderColor = "var(--neon-green)";
+            showMsg("> [HOÀN TẤT] ĐÃ CÀI ĐẶT 70 GIỜ. MẺ NUÔI CẤY AN TOÀN!", "var(--neon-green)");
+        }
+
+        DOM.btn.addEventListener('click', () => {
+            if (isGameOver) return;
+            if (!isAudioStarted) { sfx.bg.play().catch(()=>{}); isAudioStarted = true; }
+
+            const val = parseFloat(DOM.input.value);
+            
+            if (isNaN(val) || DOM.input.value.trim() === '') {
+                showMsg("> LỖI CÚ PHÁP: HÃY NHẬP THỜI GIAN Ủ (GIỜ)!", "var(--neon-orange)");
+                playFeedbackTone('wrong');
+                sfx.err.currentTime = 0; sfx.err.play().catch(()=>{});
+                flashRedScreen();
+                return;
+            }
+
+            // CHỈ CHẠY GAUGE SAU KHI NHẤN NÚT
+            updateGauge(val);
+
+            // Kiểm tra kết quả
+            if (val === CONFIG.correctAnswer) {
+                triggerWin();
+            } else {
+                playFeedbackTone('wrong');
+                currentLives--;
+                updateShields();
+                
+                if (currentLives > 0) {
+                    sfx.err.currentTime = 0; 
+                    sfx.err.play().catch(()=>{});
+                    shakeUI();
+                    flashRedScreen();
+                    showMsg(`> TỪ CHỐI! Thời gian chưa chính xác. Còn lại: ${currentLives} lượt.`, "var(--neon-orange)");
+                    DOM.input.value = '';
+                } else {
+                    // Nếu nhập sai lần cuối, gauge chạy xong 1 nhịp sẽ báo nổ
+                    setTimeout(() => triggerExplosion(), 500);
+                }
+            }
+        });
+
+        // Hỗ trợ Enter
+        DOM.input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') DOM.btn.click();
+        });
+
+        // Bật nhạc nền khi click lần đầu
+        document.body.addEventListener('click', () => {
+            if (!isAudioStarted) { sfx.bg.play().catch(()=>{}); isAudioStarted = true; }
+        }, { once: true });
+
+        // Khởi động
+        window.onload = initApp;
+
+    </script>
+</body>
+</html>
